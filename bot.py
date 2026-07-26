@@ -4,16 +4,6 @@
 Data sources (all free, no API key needed beyond your bot token):
   - Google Autocomplete   -> keyword suggestions, "alphabet soup", question keywords
   - Google Trends (pytrends) -> interest over time, rising/top related queries
-
-Commands:
-  /start                 welcome + usage
-  /help                  usage
-  /keywords <seed>       autocomplete suggestions (seed + a-z, seed + 0-9)
-  /questions <seed>      question-based keywords (what/why/how/... + seed)
-  /prepositions <seed>   preposition-based keywords (for/with/without/... + seed)
-  /trends <seed>         12-month interest trend summary
-  /related <seed>        top + rising related queries from Google Trends
-  /full <seed>           runs keywords + questions + trends + related in one go
 """
 
 import asyncio
@@ -71,7 +61,6 @@ def _fetch_suggestions(query: str) -> list[str]:
 
 
 def get_alphabet_soup(seed: str) -> "OrderedDict[str, None]":
-    """seed + each letter a-z, and seed + each digit 0-9, deduped, in order found."""
     results: "OrderedDict[str, None]" = OrderedDict()
     results.update((s, None) for s in _fetch_suggestions(seed))
     for ch in string.ascii_lowercase + string.digits:
@@ -97,7 +86,6 @@ def get_preposition_keywords(seed: str) -> "OrderedDict[str, None]":
 
 
 def get_trends_summary(seed: str) -> dict:
-    """Returns interest-over-time trend direction + top/rising related queries."""
     from pytrends.request import TrendReq
 
     pytrends = TrendReq(hl="en-US", tz=360)
@@ -140,7 +128,6 @@ def format_list(title: str, items: list[str], limit: int = 40) -> str:
 
 
 async def send_long_message(update: Update, text: str) -> None:
-    """Telegram caps messages at 4096 chars — split on line breaks if needed."""
     if len(text) <= TELEGRAM_MSG_LIMIT:
         await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
         return
@@ -294,6 +281,11 @@ async def unknown_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 
 def main() -> None:
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
